@@ -1,5 +1,6 @@
 package com.Navneet.ApiRateLimiter.service;
 
+import com.Navneet.ApiRateLimiter.model.CombinedRateLimiter;
 import com.Navneet.ApiRateLimiter.model.TokenBucket;
 import org.apache.catalina.util.RateLimiter;
 import org.springframework.stereotype.Service;
@@ -8,15 +9,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class RateLimiterService {
-    private final ConcurrentHashMap<String, TokenBucket> userBuckets = new ConcurrentHashMap<>();
-
-    private static final int CAPACITY = 5;
-    private static final int  REFILL_RATE = 5;
+    private final ConcurrentHashMap<String, CombinedRateLimiter> userLimiters = new ConcurrentHashMap<>();
 
     public boolean allowRequest(String userId) {
-        userBuckets.putIfAbsent(userId, new TokenBucket(CAPACITY, REFILL_RATE));
-
-        TokenBucket tokenBucket = userBuckets.get(userId);
-        return tokenBucket.allowRequest();
+        CombinedRateLimiter limiter = userLimiters.computeIfAbsent(
+                userId,
+                k -> new CombinedRateLimiter(
+                        10,5,
+                        5,1000
+                )
+        );
+        return limiter.allowRequest();
     }
 }
